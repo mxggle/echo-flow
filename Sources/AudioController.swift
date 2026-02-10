@@ -43,7 +43,7 @@ class AudioController: ObservableObject {
             player?.prepareToPlay()
             duration = player?.duration ?? 0
             currentTime = 0
-            playbackRate = 1.0
+            playbackRate = Float(SettingsManager.shared.defaultPlaybackSpeed)
         } catch {
             print("❌ Failed to load audio: \(error.localizedDescription)")
         }
@@ -84,15 +84,17 @@ class AudioController: ObservableObject {
         }
     }
 
-    func skipForward(_ seconds: TimeInterval = 5) {
+    func skipForward(_ seconds: TimeInterval? = nil) {
         guard let player else { return }
-        let target = min(player.currentTime + seconds, duration)
+        let step = seconds ?? SettingsManager.shared.skipForwardStep
+        let target = min(player.currentTime + step, duration)
         seek(to: target)
     }
 
-    func skipBackward(_ seconds: TimeInterval = 5) {
+    func skipBackward(_ seconds: TimeInterval? = nil) {
         guard let player else { return }
-        let target = max(player.currentTime - seconds, 0)
+        let step = seconds ?? SettingsManager.shared.skipBackwardStep
+        let target = max(player.currentTime - step, 0)
         seek(to: target)
     }
 
@@ -103,11 +105,11 @@ class AudioController: ObservableObject {
     }
 
     func speedUp() {
-        setSpeed(playbackRate + 0.1)
+        setSpeed(playbackRate + Float(SettingsManager.shared.speedStep))
     }
 
     func speedDown() {
-        setSpeed(playbackRate - 0.1)
+        setSpeed(playbackRate - Float(SettingsManager.shared.speedStep))
     }
 
     func stop() {

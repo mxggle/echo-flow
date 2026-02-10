@@ -80,7 +80,7 @@ struct TranscriptView: View {
                 .padding(.vertical, 12)
             }
             .onChange(of: viewModel.currentSentence?.id) { newID in
-                if let id = newID {
+                if let id = newID, SettingsManager.shared.autoScrollTranscript {
                     withAnimation(.easeInOut(duration: 0.3)) {
                         proxy.scrollTo(id, anchor: .center)
                     }

@@ -7,3 +7,6 @@
 
 
 - [x] The keyboard is too little. add more keyboard shortcuts. refer to the keyboard shortcuts of other Video apps.
+
+
+- [x] Add a settings view to adjust the skip step of the skip forward and skip backward. and other settings. also refer to other video apps.

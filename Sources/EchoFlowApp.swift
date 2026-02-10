@@ -36,12 +36,12 @@ struct EchoFlowApp: App {
 
                 Divider()
 
-                Button("Skip Forward 5s") {
+                Button("Skip Forward \(Int(SettingsManager.shared.skipForwardStep))s") {
                     viewModel.audioController.skipForward()
                 }
                 .keyboardShortcut(.rightArrow, modifiers: [])
 
-                Button("Skip Back 5s") {
+                Button("Skip Back \(Int(SettingsManager.shared.skipBackwardStep))s") {
                     viewModel.audioController.skipBackward()
                 }
                 .keyboardShortcut(.leftArrow, modifiers: [])
@@ -78,6 +78,10 @@ struct EchoFlowApp: App {
                 .keyboardShortcut("r", modifiers: .command)
             }
         }
+
+        Settings {
+            SettingsView()
+        }
     }
 
     // MARK: - App-level keyboard monitor (bypasses SwiftUI focus issues)
@@ -104,13 +108,13 @@ struct EchoFlowApp: App {
                 return nil
             }
 
-            // ⇧← ⇧→  Fine skip (1s)
+            // ⇧← ⇧→  Fine skip (configurable)
             if event.keyCode == 123 && flags == .shift {       // ⇧←
-                viewModel.audioController.skipBackward(1)
+                viewModel.audioController.skipBackward(SettingsManager.shared.fineSkipStep)
                 return nil
             }
             if event.keyCode == 124 && flags == .shift {       // ⇧→
-                viewModel.audioController.skipForward(1)
+                viewModel.audioController.skipForward(SettingsManager.shared.fineSkipStep)
                 return nil
             }
 
