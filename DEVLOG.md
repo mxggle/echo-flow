@@ -177,4 +177,11 @@ Export generates proper SRT format with `HH:MM:SS,mmm` timestamps. Import parses
 **Fix:** Implemented a robust preprocessing step in `TranscriptionService`. Before uploading to OpenAI/Gemini/Grok, the audio is converted to **16kHz Mono AAC** using `AVAssetReader` + `AVAssetWriter`. This standardized input prevents the AI from misinterpreting the sample rate, eliminating the root cause of the drift.
 
 **Files changed:** `TranscriptionService.swift`
+### 11. Project Documentation — 2026-02-11
+
+**Action:** Created a comprehensive `README.md` for the project.
+
+**Content:** Includes app overview, feature list, build instructions, keyboard shortcuts, and technical implementation details regarding audio-transcript synchronization.
+
+**Files changed:** `README.md`
 
