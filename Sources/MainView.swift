@@ -44,13 +44,56 @@ struct MainView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(track.name)
                                 .font(.headline)
-                            if track.srtURL != nil {
+                            if track.srtURL != nil || !viewModel.sentences.isEmpty {
                                 Text("\(viewModel.sentences.count) sentences")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
                         }
                         Spacer()
+
+                        // Transcript actions
+                        if !viewModel.sentences.isEmpty {
+                            Button {
+                                viewModel.exportTranscript()
+                            } label: {
+                                Image(systemName: "square.and.arrow.up")
+                                    .font(.caption)
+                            }
+                            .buttonStyle(.borderless)
+                            .help("Export transcript as SRT")
+                        }
+
+                        Button {
+                            viewModel.importTranscript()
+                        } label: {
+                            Image(systemName: "square.and.arrow.down")
+                                .font(.caption)
+                        }
+                        .buttonStyle(.borderless)
+                        .help("Import SRT transcript")
+
+                        // Transcription status indicator
+                        switch viewModel.transcriptionStatus {
+                        case .transcribing:
+                            HStack(spacing: 6) {
+                                ProgressView()
+                                    .controlSize(.small)
+                                Text("Transcribing…")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        case .completed:
+                            Label("\(viewModel.sentences.count) sentences (AI)", systemImage: "checkmark.circle")
+                                .font(.caption)
+                                .foregroundStyle(.green)
+                        case .failed:
+                            Label("Failed", systemImage: "exclamationmark.triangle")
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                        case .idle:
+                            EmptyView()
+                        }
                     }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 10)

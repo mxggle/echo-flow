@@ -19,8 +19,13 @@ struct SettingsView: View {
                 .tabItem {
                     Label("Recording", systemImage: "mic.circle")
                 }
+
+            aiServicesTab
+                .tabItem {
+                    Label("AI Services", systemImage: "brain")
+                }
         }
-        .frame(width: 420, height: 340)
+        .frame(width: 480, height: 400)
     }
 
     // MARK: - Playback Tab
@@ -140,5 +145,75 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .padding(.top, 8)
+    }
+
+    // MARK: - AI Services Tab
+
+    private var selectedProvider: TranscriptionProvider {
+        TranscriptionProvider(rawValue: settings.transcriptionProvider) ?? .openAI
+    }
+
+    private var aiServicesTab: some View {
+        Form {
+            Section("Provider") {
+                Picker("Service", selection: $settings.transcriptionProvider) {
+                    ForEach(TranscriptionProvider.allCases) { provider in
+                        Text(provider.displayName).tag(provider.rawValue)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: settings.transcriptionProvider) { newValue in
+                    // Auto-set default model when switching providers
+                    if let provider = TranscriptionProvider(rawValue: newValue) {
+                        settings.transcriptionModel = provider.defaultModel
+                    }
+                }
+            }
+
+            Section("API Key") {
+                SecureField("Enter \(selectedProvider.displayName) API key", text: apiKeyBinding)
+                    .textFieldStyle(.roundedBorder)
+
+                if apiKeyBinding.wrappedValue.isEmpty {
+                    Label("Required for transcription", systemImage: "exclamationmark.triangle")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                } else {
+                    Label("Key saved", systemImage: "checkmark.circle")
+                        .font(.caption)
+                        .foregroundStyle(.green)
+                }
+            }
+
+            Section("Model") {
+                Picker("Model", selection: $settings.transcriptionModel) {
+                    ForEach(selectedProvider.availableModels, id: \.self) { model in
+                        Text(model).tag(model)
+                    }
+                }
+            }
+
+            Section("Language") {
+                HStack {
+                    TextField("ISO 639-1 code", text: $settings.transcriptionLanguage)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 80)
+                    Text("e.g. en, ja, zh, es, fr, de")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .padding(.top, 8)
+    }
+
+    /// Returns a binding to the API key for the currently selected provider
+    private var apiKeyBinding: Binding<String> {
+        switch selectedProvider {
+        case .openAI: return $settings.openAIApiKey
+        case .gemini: return $settings.geminiApiKey
+        case .grok:   return $settings.grokApiKey
+        }
     }
 }

@@ -114,3 +114,67 @@ All values persist via `@AppStorage`. `AudioController` reads skip steps, speed 
 
 **Files added:** `SettingsManager.swift`, `SettingsView.swift`
 **Files changed:** `AudioController.swift`, `EchoFlowApp.swift`, `TranscriptView.swift`
+
+### 5. Audio Sync & Interaction Fixes
+
+**Root cause:**
+- Linear search in `onTimeUpdate` was inefficient and sometimes missed updates, causing highlight lag.
+- SRT files with non-sequential or duplicate IDs caused `ForEach` rendering issues.
+- `onTapGesture` on `lazyVStack` rows was unreliable.
+
+**Fix:**
+- **Robust Indexing:** `SRTParser` now assigns sequential internal IDs (0, 1, 2...) regardless of file content.
+- **Optimized Lookups:** Replaced linear search with a multi-stage check: 1) Current sentence? 2) Next sentence? 3) Binary search (fallback).
+- **Better Interaction:** Wrapped `SentenceRow` in a `Button` with `.buttonStyle(.plain)` for reliable native click handling.
+
+**Files changed:** `Models.swift`, `AppViewModel.swift`, `TranscriptView.swift`
+
+### 6. Recent Playlists Tab (Folder-Grouped Sidebar) — 2026-02-10
+
+**Feature:** Added a segmented "Tracks" / "Recent" tab picker in the sidebar. The "Recent" tab shows previously opened folders grouped by parent directory (similar to VLC/IINA). Tapping a folder loads its tracks and switches to the Tracks tab. Maximum 10 recent folders are stored.
+
+**Files changed:** `SidebarView.swift`, `SettingsManager.swift`, `AppViewModel.swift`
+
+### 7. App State Persistence — 2026-02-10
+
+**Feature:** The app now saves its full session state on quit and restores it on relaunch:
+- Last opened folder URL
+- Last selected track
+- Last sentence index + playback position
+- Current transcript (as JSON, including AI-generated ones)
+
+State is persisted via `@AppStorage` in `SettingsManager`. Restoration runs on app launch in `onAppear`. Saving fires on `NSApplication.willTerminateNotification`.
+
+**Files changed:** `SettingsManager.swift`, `AppViewModel.swift`, `EchoFlowApp.swift`
+
+### 8. Transcript Export & Import — 2026-02-10
+
+**Feature:** Users can now export and import transcripts as standard `.srt` files.
+
+| Action | Trigger |
+|---|---|
+| Export transcript | ⌘E or ↑ button in title bar |
+| Import transcript | ⌘⇧I or ↓ button in title bar |
+
+Export generates proper SRT format with `HH:MM:SS,mmm` timestamps. Import parses any standard SRT file and loads it into the current track.
+
+**Files changed:** `Models.swift` (SRT generation + Sentence Codable), `AppViewModel.swift`, `MainView.swift`, `EchoFlowApp.swift`
+
+### 9. Fix Progressive Audio-Transcript Sync Drift — 2026-02-10
+
+**Bug:** Transcript highlighting drifted further and further from the actual audio position over time. Clicking a sentence also jumped to the wrong position.
+
+**Root Cause:** AI transcription APIs (Whisper, Gemini) return timestamps that are systematically **stretched** compared to the actual audio duration when processing compressed formats like MP3. For example, a 60-second audio file might get timestamps ending at 65 seconds.
+
+**Fix (two parts):**
+1. **Timer fix:** Replaced `Timer.scheduledTimer` + `Task { @MainActor }` with `DispatchSourceTimer` on `.main` queue for synchronous time updates (eliminates async dispatch jitter).
+2. **Timestamp normalization:** Added `normalizeTimestamps()` in `AppViewModel` that scales all AI-generated timestamps proportionally: `ratio = actualDuration / transcriptDuration`. Applied to both `transcribeCurrentTrack()` and `importTranscript()`. A 2% tolerance threshold skips scaling when timestamps are already accurate. A console log `⏱ Normalizing timestamps: ...` prints the scaling factor for debugging.
+
+### 10. Audio Resampling for Transcription — 2026-02-10
+
+**Bug:** AI timestamp drift was caused by sample rate mismatches (sending 44.1/48kHz audio to models expecting 16kHz). This caused linear time stretching.
+
+**Fix:** Implemented a robust preprocessing step in `TranscriptionService`. Before uploading to OpenAI/Gemini/Grok, the audio is converted to **16kHz Mono AAC** using `AVAssetReader` + `AVAssetWriter`. This standardized input prevents the AI from misinterpreting the sample rate, eliminating the root cause of the drift.
+
+**Files changed:** `TranscriptionService.swift`
+

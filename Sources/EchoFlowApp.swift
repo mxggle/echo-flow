@@ -16,6 +16,20 @@ struct EchoFlowApp: App {
                     NSApp.activate(ignoringOtherApps: true)
                     requestMicrophonePermission()
                     installKeyboardMonitor()
+
+                    // Restore previous session state
+                    viewModel.restoreState()
+
+                    // Save state when app terminates
+                    NotificationCenter.default.addObserver(
+                        forName: NSApplication.willTerminateNotification,
+                        object: nil,
+                        queue: .main
+                    ) { _ in
+                        MainActor.assumeIsolated {
+                            viewModel.saveState()
+                        }
+                    }
                 }
         }
         .windowStyle(.titleBar)
@@ -76,6 +90,20 @@ struct EchoFlowApp: App {
                     viewModel.audioController.toggleRecording()
                 }
                 .keyboardShortcut("r", modifiers: .command)
+            }
+
+            CommandMenu("Transcript") {
+                Button("Export Transcript…") {
+                    viewModel.exportTranscript()
+                }
+                .keyboardShortcut("e", modifiers: .command)
+                .disabled(viewModel.sentences.isEmpty)
+
+                Button("Import Transcript…") {
+                    viewModel.importTranscript()
+                }
+                .keyboardShortcut("i", modifiers: [.command, .shift])
+                .disabled(viewModel.selectedTrack == nil)
             }
         }
 

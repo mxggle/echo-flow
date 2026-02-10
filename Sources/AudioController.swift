@@ -14,10 +14,13 @@ class AudioController: ObservableObject {
     @Published var volume: Float = 1.0
     @Published var lastRecordingURL: URL? = nil
 
+    /// Callback invoked on every timer tick with the current playback time
+    var onTimeUpdate: ((TimeInterval) -> Void)?
+
     // MARK: - Private
     private var player: AVAudioPlayer?
     private var recorder: AVAudioRecorder?
-    private var timer: Timer?
+    private var timer: DispatchSourceTimer?
     private var loopStart: TimeInterval = 0
     private var loopEnd: TimeInterval = 0
 
@@ -74,6 +77,7 @@ class AudioController: ObservableObject {
     func seek(to time: TimeInterval) {
         player?.currentTime = time
         currentTime = time
+        onTimeUpdate?(time)
     }
 
     func setSpeed(_ rate: Float) {
@@ -177,29 +181,32 @@ class AudioController: ObservableObject {
 
     private func startTimer() {
         stopTimer()
-        timer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                guard let self, let player = self.player else { return }
-                self.currentTime = player.currentTime
+        let source = DispatchSource.makeTimerSource(queue: .main)
+        source.schedule(deadline: .now(), repeating: .milliseconds(50))
+        source.setEventHandler { [weak self] in
+            guard let self, let player = self.player else { return }
+            self.currentTime = player.currentTime
+            self.onTimeUpdate?(player.currentTime)
 
-                // Handle looping
-                if self.isLooping && self.loopEnd > self.loopStart {
-                    if player.currentTime >= self.loopEnd {
-                        player.currentTime = self.loopStart
-                    }
-                }
-
-                // Handle end of track
-                if !player.isPlaying && self.isPlaying {
-                    self.isPlaying = false
-                    self.stopTimer()
+            // Handle looping
+            if self.isLooping && self.loopEnd > self.loopStart {
+                if player.currentTime >= self.loopEnd {
+                    player.currentTime = self.loopStart
                 }
             }
+
+            // Handle end of track
+            if !player.isPlaying && self.isPlaying {
+                self.isPlaying = false
+                self.stopTimer()
+            }
         }
+        source.resume()
+        timer = source
     }
 
     private func stopTimer() {
-        timer?.invalidate()
+        timer?.cancel()
         timer = nil
     }
 }
