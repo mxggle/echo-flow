@@ -99,3 +99,18 @@ swift run     # Launch the app
 **Fix:** Added `NSApp.setActivationPolicy(.regular)` and `NSApp.activate(ignoringOtherApps: true)` in `onAppear` to promote the app to a regular foreground process.
 
 **Files changed:** `EchoFlowApp.swift`
+
+### 4. Settings View (⌘,)
+
+**Feature:** Added a native macOS Settings window with three tabs:
+
+| Tab | Settings |
+|---|---|
+| **Playback** | Skip forward/backward step (1–60s), fine skip step (0.5–10s), default playback speed, speed step (+/- increment) |
+| **Transcript** | Auto-scroll to active sentence toggle |
+| **Recording** | Output format (AAC/WAV), reveal recordings folder |
+
+All values persist via `@AppStorage`. `AudioController` reads skip steps, speed step, and default speed from `SettingsManager` instead of hardcoded values. Menu labels dynamically show the configured skip seconds.
+
+**Files added:** `SettingsManager.swift`, `SettingsView.swift`
+**Files changed:** `AudioController.swift`, `EchoFlowApp.swift`, `TranscriptView.swift`
